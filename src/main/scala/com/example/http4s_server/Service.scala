@@ -10,11 +10,16 @@ import org.http4s.dsl.Http4sDsl
 
 import scala.annotation.tailrec
 
+case class InpData(numbers: Array[Double], winSize: Int) {
+
+  import InpData._
+
+  def check: Either[String, (Array[Double], Int)] = checkCorrectData(numbers, winSize)
+}
+
 class Service[IO[_] : Sync]() extends Http4sDsl[IO] {
 
   import Service._
-
-  case class InpData(listOfNumbers: List[Double], sizeOfWindow: Int)
 
   case class OutData(response: String)
 
@@ -23,12 +28,25 @@ class Service[IO[_] : Sync]() extends Http4sDsl[IO] {
   def routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req@POST -> Root => {
       for {
-        outData <- req.as[InpData].map(x => calcMA(x.listOfNumbers, x.sizeOfWindow))
+        outData <- req.as[InpData].map(x => x.check)
         resp <- outData match {
           case Left(x) => BadRequest(x)
-          case Right(x) => Ok(OutData(x.mkString("[", ", ", "]")).asJson)
+          case Right(x) => {
+            val res = calcMA(x)
+            Ok(OutData(res.mkString("[", ", ", "]")).asJson)
+          }
         }
       } yield (resp)
+    }
+  }
+}
+
+object InpData {
+  def checkCorrectData(numbers: Array[Double], winSize: Int): Either[String, (Array[Double], Int)] = {
+    (numbers, winSize) match {
+      case (x, _) if x.isEmpty => Left("List of numbers is empty")
+      case (_, y) if y <= 0 || y > numbers.size => Left(s"Window size must be between 1 and ${numbers.size}")
+      case (x, y) => Right(x, y)
     }
   }
 }
@@ -52,17 +70,17 @@ object Service {
   //P_(t) - (t) value from source array
   //n - window size
   @tailrec
-  def calcMA(lstOfNum: List[Double], szOfWindow: Int, calcLst: List[Double] = List.empty, pos: Int = 0): Either[String, List[Double]] = {
-    (lstOfNum, szOfWindow, pos) match {
-      case (p, _, _) if p.isEmpty => Left("List of numbers is empty")
-      case (_, n, _) if n <= 0 || n > lstOfNum.size => Left(s"Window size must be between 1 and ${lstOfNum.size}")
-      case (_, 1, _) => Right(lstOfNum)
-      case (_, n, t) if t == lstOfNum.size => Right(calcLst.drop(n - 1))
-      case (p, n, t) if t == 0 => calcMA(p, n, calcLst :+ p(t) / n, t + 1)
-      case (p, n, t) if t < szOfWindow - 1 => calcMA(p, n, calcLst :+ (calcLst(t - 1) + lstOfNum(t) / n), t + 1)
+  def calcMA(pair: (Array[Double], Int), results: Array[Double] = Array.empty, pos: Int = 0): Array[Double] = {
+    val numbers = pair._1
+    val winSize = pair._2
+    (numbers, winSize, pos) match {
+      case (_, 1, _) => numbers
+      case (_, n, t) if t == numbers.size => results.drop(n - 1)
+      case (p, n, t) if t == 0 => calcMA((p, n), results :+ p(t) / n, t + 1)
+      case (p, n, t) if t < winSize - 1 => calcMA((p, n), results :+ (results(t - 1) + numbers(t) / n), t + 1)
       case (p, n, t) => {
-        val newVal = calcLst(t - 1) - (if (t >= n) p(t - n) else 0) / n + p(t) / n
-        calcMA(p, n, calcLst :+ newVal, t + 1)
+        val newVal = results(t - 1) - (if (t >= n) p(t - n) else 0) / n + p(t) / n
+        calcMA((p, n), results :+ newVal, t + 1)
       }
     }
   }
