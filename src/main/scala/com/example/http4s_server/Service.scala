@@ -32,7 +32,9 @@ class Service[IO[_] : Sync]() extends Http4sDsl[IO] {
         resp <- outData match {
           case Left(x) => BadRequest(x)
           case Right(x) => {
-            val res = calcMA(x)
+            val res = x match {
+              case (data, n) => calcMA(data, n)
+            }
             Ok(OutData(res.mkString("[", ", ", "]")).asJson)
           }
         }
@@ -70,17 +72,30 @@ object Service {
   //P_(t) - (t) value from source array
   //n - window size
   @tailrec
-  def calcMA(pair: (Array[Double], Int), results: Array[Double] = Array.empty, pos: Int = 0): Array[Double] = {
+  def calcMA_obsolete(pair: (Array[Double], Int), results: Array[Double] = Array.empty, pos: Int = 0): Array[Double] = {
     val numbers = pair._1
     val winSize = pair._2
     (numbers, winSize, pos) match {
       case (_, 1, _) => numbers
       case (_, n, t) if t == numbers.size => results.drop(n - 1)
-      case (p, n, t) if t == 0 => calcMA((p, n), results :+ p(t) / n, t + 1)
-      case (p, n, t) if t < winSize - 1 => calcMA((p, n), results :+ (results(t - 1) + numbers(t) / n), t + 1)
+      case (p, n, t) if t == 0 => calcMA_obsolete((p, n), results :+ p(t) / n, t + 1)
+      case (p, n, t) if t < winSize - 1 => calcMA_obsolete((p, n), results :+ (results(t - 1) + numbers(t) / n), t + 1)
       case (p, n, t) => {
         val newVal = results(t - 1) - (if (t >= n) p(t - n) else 0) / n + p(t) / n
-        calcMA((p, n), results :+ newVal, t + 1)
+        calcMA_obsolete((p, n), results :+ newVal, t + 1)
+      }
+    }
+  }
+
+  def calcMA(data: Seq[Double], n: Int): Seq[Double] = {
+    n match {
+      case 1 => data
+      case _ => {
+        data.drop(n).foldLeft((data.take(n), Seq(data.take(n).sum / n)))((acc: (Seq[Double], Seq[Double]), num: Double) => acc match {
+          case (nums, ma) => (nums.drop(1) :+ num, ma :+ (ma.last - nums.head / n + num / n))
+        }) match {
+          case (_, ma) => ma
+        }
       }
     }
   }

@@ -35,14 +35,14 @@ class ServiceTest extends FlatSpec with Matchers {
   "numbers : [ 1, -111, 2 ], winSize : -2" should "response : Array(-55.0, -54.5)" in {
     val numbers: Array[Double] = Array(1, -111, 2)
     val winSize: Int = 2
-    val res: Array[Double] = Service.calcMA((numbers, winSize))
+    val res: Seq[Double] = Service.calcMA(numbers, winSize)
     res should equal(Array(-55.0, -54.5))
   }
 
   "numbers : [ 1, 2 ], winSize : 1" should "response : Array(1, 2)" in {
     val numbers: Array[Double] = Array(1, 2)
     val winSize: Int = 1
-    val res: Array[Double] = Service.calcMA((numbers, winSize))
+    val res: Seq[Double] = Service.calcMA(numbers, winSize)
     res should equal(Array(1, 2))
   }
 }
