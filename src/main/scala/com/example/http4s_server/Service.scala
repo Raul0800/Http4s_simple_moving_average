@@ -9,6 +9,7 @@ import org.http4s.circe.{jsonEncoder, jsonOf}
 import org.http4s.dsl.Http4sDsl
 
 import scala.annotation.tailrec
+import scala.collection.LinearSeq
 
 case class InpData(numbers: Array[Double], winSize: Int) {
 
@@ -87,13 +88,16 @@ object Service {
     }
   }
 
-  def calcMA(data: Seq[Double], n: Int): Seq[Double] = {
+  def calcMA(data: Seq[Double], n: Int): Vector[Double] = {
+    val d = data.toVector
+
     n match {
-      case 1 => data
+      case 1 => d
       case _ => {
-        data.drop(n).foldLeft((data.take(n), Seq(data.take(n).sum / n)))((acc: (Seq[Double], Seq[Double]), num: Double) => acc match {
-          case (nums, ma) => (nums.drop(1) :+ num, ma :+ (ma.last - nums.head / n + num / n))
-        }) match {
+        d.drop(n).foldLeft((d.take(n), Vector(d.take(n).sum / n)))((acc: (Vector[Double], Vector[Double]), num: Double) =>
+          acc match {
+            case (nums, ma) => (nums.drop(1) :+ num , ma :+ (ma.last - nums.head / n + num / n))
+          }) match {
           case (_, ma) => ma
         }
       }
