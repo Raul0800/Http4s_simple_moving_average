@@ -88,13 +88,13 @@ object Service {
     }
   }
 
-  def calcMA(data: Seq[Double], n: Int): Vector[Double] = {
+  def calcMA(data: Seq[Double], n: Int): Seq[Double] = {
     val d = data.toVector
 
     n match {
       case 1 => d
       case _ => {
-        d.drop(n).foldLeft((d.take(n), Vector(d.take(n).sum / n)))((acc: (Vector[Double], Vector[Double]), num: Double) =>
+        d.drop(n).foldLeft((d.take(n), Array(d.take(n).sum / n)))((acc: (Vector[Double], Array[Double]), num: Double) =>
           acc match {
             case (nums, ma) => (nums.drop(1) :+ num , ma :+ (ma.last - nums.head / n + num / n))
           }) match {
