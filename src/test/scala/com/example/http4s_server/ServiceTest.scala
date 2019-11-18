@@ -32,7 +32,7 @@ class ServiceTest extends FlatSpec with Matchers {
 
   //Tests for InpData.checkCorrectData
 
-  "numbers : [ 1, -111, 2 ], winSize : -2" should "response : Array(-55.0, -54.5)" in {
+  "numbers : [ 1, -111, 2 ], winSize : 2" should "response : Array(-55.0, -54.5)" in {
     val numbers: Array[Double] = Array(1, -111, 2)
     val winSize: Int = 2
     val res: Seq[Double] = Service.calcMA(numbers, winSize)
